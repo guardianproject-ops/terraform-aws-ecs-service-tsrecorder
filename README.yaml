@@ -1,0 +1,45 @@
+---
+name: terraform-aws-ecs-service-tsrecorder
+license: GPL3
+gitlab_repo: guardianproject-ops/terraform-aws-ecs-service-tsrecorder
+
+description: Terraform module for deploying tailscale's SSH session recorder to an ECS cluster
+
+introduction: |-
+
+  This is a module for deploying tailscale as a standalone ECS service. It features:
+
+    * Bring your own ECS cluster, works with Fargate
+    * A lambda that rotates the tailscale auth-key automatically using AWS Secrets Manager
+    * Automatic state persistence with AWS EFS
+
+usage: |-
+
+  ```terraform
+  module "recorder" {
+    context                    = module.this.context
+    vpc_id                     = module.vpc.vpc_id
+    ecs_cluster_arn            = module.ecs_cluster.arn
+    public_subnet_ids          = module.subnets.public_subnet_ids
+    private_subnet_ids         = module.subnets.private_subnet_ids
+    tsrecorder_hostname        = each.value.hostname
+    tailscale_tailnet          = var.tailscale_tailnet
+    tailscale_client_id        = var.tailscale_client_id
+    tailscale_client_secret    = var.tailscale_client_secret
+    tailscale_tags             = var.tailscale_tags
+    tsrecorder_node_count      = each.value.count
+    tsrecorder_bucket          = aws_s3_bucket.tsrecorder[0].id
+    task_cpu                   = 512
+    task_memory                = 1024
+    tsrecorder_container_image = var.tsrecorder_container_image
+    kms_key_arn                = var.kms_key_arn
+  }
+  ```
+
+include:
+  - docs/terraform.md
+
+contributors:
+  - name: "Abel Luck"
+    gitlab: "abelxluck"
+    gravatar: 0f605397e0ead93a68e1be26dc26481a
