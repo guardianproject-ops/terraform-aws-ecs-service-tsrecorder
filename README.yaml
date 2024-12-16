@@ -37,7 +37,8 @@ usage: |-
   ```
 
 include:
-  - docs/terraform.md
+  - docs/terraform-split.md
+  - docs/targets.md
 
 contributors:
   - name: "Abel Luck"
