@@ -49,10 +49,10 @@ resource "aws_secretsmanager_secret_version" "authkey" {
 # Rotation Lambda
 module "ts_rotate" {
   source           = "guardianproject-ops/lambda-secrets-manager-tailscale/aws"
-  version          = "0.0.1"
+  version          = "0.0.2"
+  context          = module.label_rotate.context
   ts_client_secret = var.tailscale_client_secret
   ts_client_id     = var.tailscale_client_id
   tailnet          = var.tailscale_tailnet
   secret_prefix    = "${module.label_rotate.id}/*"
-  context          = module.label_rotate.context
 }

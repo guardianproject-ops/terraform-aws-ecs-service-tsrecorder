@@ -1,5 +1,6 @@
 data "aws_region" "this" {}
 data "aws_s3_bucket" "this" {
+  count  = module.this.enabled ? 1 : 0
   bucket = var.tsrecorder_bucket
 }
 
@@ -139,6 +140,7 @@ resource "aws_efs_mount_target" "tailscale_state" {
 
 module "tailscale_def" {
   source          = "cloudposse/ecs-container-definition/aws"
+  count           = module.this.enabled ? 1 : 0
   version         = "0.61.1"
   container_name  = "tailscale"
   container_image = var.tsrecorder_container_image
@@ -171,12 +173,12 @@ module "tailscale_def" {
   }
 }
 module "tsrecorder" {
-  source  = "cloudposse/ecs-alb-service-task/aws"
-  version = "0.76.1"
-
+  source                             = "cloudposse/ecs-alb-service-task/aws"
+  version                            = "0.76.1"
+  context                            = module.this.context
   vpc_id                             = var.vpc_id
   ecs_cluster_arn                    = var.ecs_cluster_arn
-  security_group_ids                 = [aws_security_group.tailscale[0].id]
+  security_group_ids                 = module.this.enabled ? [aws_security_group.tailscale[0].id] : []
   security_group_enabled             = false
   subnet_ids                         = var.public_subnet_ids
   assign_public_ip                   = true
@@ -187,12 +189,13 @@ module "tsrecorder" {
   deployment_minimum_healthy_percent = 0
   task_cpu                           = var.task_cpu
   task_memory                        = var.task_memory
-  container_definition_json = jsonencode(
+  container_definition_json = module.this.enabled ? jsonencode(
     concat(
-      [module.tailscale_def.json_map_object]
+      [module.tailscale_def[0].json_map_object]
     )
-  )
-  efs_volumes = [
+  ) : ""
+
+  efs_volumes = module.this.enabled ? [
     {
       host_path = null
       name      = "tailscale-state"
@@ -208,14 +211,13 @@ module "tsrecorder" {
             iam             = "DISABLED"
         }]
       }]
-
     }
-  ]
-  context = module.this.context
+  ] : []
 }
 
 
 resource "aws_iam_role_policy_attachment" "tailscale_exec" {
+  count      = module.this.enabled ? 1 : 0
   role       = module.tsrecorder.task_exec_role_name
   policy_arn = aws_iam_policy.tailscale_exec.arn
 }
@@ -238,11 +240,11 @@ data "aws_iam_policy_document" "tailscale_exec" {
       "elasticfilesystem:DescribeFileSystems"
 
     ]
-    resources = [
+    resources = module.this.enabled ? [
       aws_secretsmanager_secret.authkey[0].arn,
       var.kms_key_arn,
       aws_efs_file_system.tailscale_state[0].arn
-    ]
+    ] : []
   }
 }
 
@@ -292,9 +294,9 @@ data "aws_iam_policy_document" "tailscale_task" {
         "s3:ListBucket"
       ] : []
     )
-    resources = [
-      data.aws_s3_bucket.this.arn,
-      var.tsrecorder_bucket_prefix != null ? "${data.aws_s3_bucket.this.arn}/${var.tsrecorder_bucket_prefix}/*" : "${data.aws_s3_bucket.this.arn}/*"
-    ]
+    resources = module.this.enabled ? [
+      data.aws_s3_bucket.this[0].arn,
+      var.tsrecorder_bucket_prefix != null ? "${data.aws_s3_bucket.this[0].arn}/${var.tsrecorder_bucket_prefix}/*" : "${data.aws_s3_bucket.this[0].arn}/*"
+    ] : []
   }
 }
