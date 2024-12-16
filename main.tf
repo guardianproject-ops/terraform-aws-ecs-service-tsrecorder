@@ -219,15 +219,17 @@ module "tsrecorder" {
 resource "aws_iam_role_policy_attachment" "tailscale_exec" {
   count      = module.this.enabled ? 1 : 0
   role       = module.tsrecorder.task_exec_role_name
-  policy_arn = aws_iam_policy.tailscale_exec.arn
+  policy_arn = aws_iam_policy.tailscale_exec[0].arn
 }
 
 resource "aws_iam_policy" "tailscale_exec" {
+  count  = module.this.enabled ? 1 : 0
   name   = "${module.this.id}-ecs-execution"
-  policy = data.aws_iam_policy_document.tailscale_exec.json
+  policy = data.aws_iam_policy_document.tailscale_exec[0].json
 }
 
 data "aws_iam_policy_document" "tailscale_exec" {
+  count = module.this.enabled ? 1 : 0
   statement {
     effect = "Allow"
     actions = [
@@ -258,10 +260,11 @@ resource "aws_iam_role_policy_attachment" "tailscale_task" {
 resource "aws_iam_policy" "tailscale_task" {
   count  = module.this.enabled ? 1 : 0
   name   = "${module.this.id}-ecs-task"
-  policy = data.aws_iam_policy_document.tailscale_task.json
+  policy = data.aws_iam_policy_document.tailscale_task[0].json
 }
 
 data "aws_iam_policy_document" "tailscale_task" {
+  count = module.this.enabled ? 1 : 0
 
   statement {
     sid = "UseKMSKey"
